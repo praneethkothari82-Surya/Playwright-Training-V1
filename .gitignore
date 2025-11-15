@@ -1,6 +1,6 @@
 # Node.js dependencies
 node_modules/
-package-lock.json
+# package-lock.json  # Committed for consistent CI/CD builds
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
