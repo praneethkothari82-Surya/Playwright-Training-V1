@@ -4,6 +4,13 @@ const LoginPage = require('../Pages/login.page');
 const HomePage = require('../Pages/home.page');
 const RegisterPage = require('../Pages/register.page');
 
+// Use ASCII-safe symbols in CI environments
+const isCI = process.env.CI === 'true';
+const symbols = {
+    success: isCI ? '[OK]' : '✓',
+    arrow: isCI ? '-->' : '→'
+};
+
 test.describe('Login Tests', () => {
     let loginPage;
     let homePage;
@@ -11,28 +18,28 @@ test.describe('Login Tests', () => {
 
     test.beforeEach(async ({ page }, testInfo) => {
         const workerPrefix = `[W${testInfo.parallelIndex}]`;
-        console.log(`${workerPrefix}   → Initialize Page Objects`);
+        console.log(`${workerPrefix}   ${symbols.arrow} Initialize Page Objects`);
         loginPage = new LoginPage(page);
         homePage = new HomePage(page);
         registerPage = new RegisterPage(page);
-        console.log(`${workerPrefix}   ✓ Initialize Page Objects`);
-        console.log(`${workerPrefix}   → Navigate to Homepage`);
+        console.log(`${workerPrefix}   ${symbols.success} Initialize Page Objects`);
+        console.log(`${workerPrefix}   ${symbols.arrow} Navigate to Homepage`);
         await page.goto('/');
-        console.log(`${workerPrefix}   ✓ Navigate to Homepage`);
+        console.log(`${workerPrefix}   ${symbols.success} Navigate to Homepage`);
     });
 
 
     test('Valid Login Test', {tag: '@SmokeTest',}, async ({ page }, testInfo) => {
         const workerPrefix = `[W${testInfo.parallelIndex}]`;
-        console.log(`${workerPrefix}   → Generate email and register`);
+        console.log(`${workerPrefix}   ${symbols.arrow} Generate email and register`);
         homePage = new HomePage(page);
         let email = await homePage.emailFaker();
         console.log(`${workerPrefix}   Generated email: ${email}`);
         await homePage.navigateToRegisterPage();
         await registerPage.register('John', 'Doe', email, 'Password123', 'male');     
-        console.log(`${workerPrefix}   → Login with credentials`);
+        console.log(`${workerPrefix}   ${symbols.arrow} Login with credentials`);
         await loginPage.login(email,'Password123');
-        console.log(`${workerPrefix}   ✓ Login successful`);
+        console.log(`${workerPrefix}   ${symbols.success} Login successful`);
     });
 
     test('Valid Login Test - With Helpers', {tag: '@SmokeTest',}, async ({ page }, testInfo) => {
@@ -65,14 +72,14 @@ test.describe('Login Tests', () => {
     
     test('InValid Login Test - Missing Email', {tag: '@SmokeTest',}, async ({ page }, testInfo) => {
         const workerPrefix = `[W${testInfo.parallelIndex}]`;
-        console.log(`${workerPrefix}   → Generate email and register`);
+        console.log(`${workerPrefix}   ${symbols.arrow} Generate email and register`);
         homePage = new HomePage(page);
         let email = await homePage.emailFaker();
         console.log(`${workerPrefix}   Generated email: ${email}`);
         await homePage.navigateToRegisterPage();
         await registerPage.register('John', 'Doe', email, 'Password123', 'male');     
-        console.log(`${workerPrefix}   → Login with credentials`);
-        await loginPage.login(email,'Password123');
-        console.log(`${workerPrefix}   ✓ Login successful`);
+        console.log(`${workerPrefix}   ${symbols.arrow} Login with credentials`);
+        await loginPage.login('','Password123');
+        console.log(`${workerPrefix}   ${symbols.success} Login successful`);
     });
 });

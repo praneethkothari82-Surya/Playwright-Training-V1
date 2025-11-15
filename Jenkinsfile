@@ -17,6 +17,10 @@ pipeline {
         // Test configuration
         CI = 'true'
         FORCE_COLOR = '1'
+        
+        // Console encoding for proper Unicode display
+        PYTHONIOENCODING = 'utf-8'
+        JAVA_TOOL_OPTIONS = '-Dfile.encoding=UTF-8'
     }
     
     options {
@@ -43,6 +47,51 @@ pipeline {
                 // Ensure clean state
                 script {
                     echo '✅ Workspace cleaned successfully'
+                }
+            }
+        }
+
+        stage('System Info') {
+            steps {
+                script {
+                    try {
+                        // Get system information
+                        def isWindows = isUnix() ? false : true
+                        
+                        if (isWindows) {
+                            // Windows: Use PowerShell to get CPU count
+                            def cpuCount = bat(returnStdout: true, script: '@echo off && powershell -Command "[System.Environment]::ProcessorCount"').trim()
+                            def cpuCores = cpuCount.toInteger()
+                            def workers = (cpuCores * 0.75) as Integer
+                            
+                            // Set environment variable for this build
+                            env.PLAYWRIGHT_WORKERS = workers.toString()
+                            
+                            echo "========================================"
+                            echo "Jenkins Agent System Information"
+                            echo "========================================"
+                            echo "CPU Cores Available: ${cpuCores}"
+                            echo "Playwright Workers: ${env.PLAYWRIGHT_WORKERS}"
+                            echo "========================================"
+                        } else {
+                            // Linux/Mac: Use nproc or sysctl
+                            def cpuCount = sh(returnStdout: true, script: 'nproc || sysctl -n hw.ncpu').trim()
+                            def cpuCores = cpuCount.toInteger()
+                            def workers = (cpuCores * 0.75) as Integer
+                            
+                            env.PLAYWRIGHT_WORKERS = workers.toString()
+                            
+                            echo "========================================"
+                            echo "Jenkins Agent System Information"
+                            echo "========================================"
+                            echo "CPU Cores Available: ${cpuCores}"
+                            echo "Playwright Workers: ${env.PLAYWRIGHT_WORKERS}"
+                            echo "========================================"
+                        }
+                    } catch (Exception e) {
+                        echo "⚠ System info failed, using default workers: ${e.message}"
+                        env.PLAYWRIGHT_WORKERS = '3'
+                    }
                 }
             }
         }
@@ -152,7 +201,7 @@ pipeline {
                         echo '🚀 Executing test suite...'
                         
                         testExitCode = bat(
-                            script: 'npx playwright test --reporter=html,list,json,junit,allure-playwright --max-failures=10 --retries=2 || exit /b 0',
+                            script: "npx playwright test --reporter=html,list,json,junit,allure-playwright --max-failures=10 --retries=2 --workers=${env.PLAYWRIGHT_WORKERS}|| exit /b 0",
                             returnStatus: true
                         )
                         

@@ -1,5 +1,14 @@
 const { test } = require('@playwright/test');
 
+// Use ASCII-safe symbols in CI environments for better Jenkins console display
+const isCI = process.env.CI === 'true';
+const symbols = {
+    success: isCI ? '[OK]' : '✓',
+    error: isCI ? '[FAIL]' : '✗',
+    arrow: isCI ? '-->' : '→',
+    retry: isCI ? '[RETRY]' : '↻'
+};
+
 /**
  * Enhanced test with automatic screenshots and better error messages
  */
@@ -50,12 +59,12 @@ async function retryAction(action, maxRetries = 3, actionName = 'Action', testIn
     const workerPrefix = testInfo ? `[W${testInfo.parallelIndex}] ` : '';
     for (let i = 0; i < maxRetries; i++) {
         try {
-            console.log(`${workerPrefix}  ↻ ${actionName} - Attempt ${i + 1}`);
+            console.log(`${workerPrefix}  ${symbols.retry} ${actionName} - Attempt ${i + 1}`);
             await action();
-            console.log(`${workerPrefix}  ✓ ${actionName} - Success`);
+            console.log(`${workerPrefix}  ${symbols.success} ${actionName} - Success`);
             return;
         } catch (error) {
-            console.error(`${workerPrefix}  ✗ ${actionName} - Failed: ${error.message}`);
+            console.error(`${workerPrefix}  ${symbols.error} ${actionName} - Failed: ${error.message}`);
             if (i === maxRetries - 1) throw error;
             await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s before retry
         }
@@ -67,13 +76,13 @@ async function retryAction(action, maxRetries = 3, actionName = 'Action', testIn
  */
 async function logStep(stepName, action, testInfo = null) {
     const workerPrefix = testInfo ? `[W${testInfo.parallelIndex}] ` : '';
-    console.log(`${workerPrefix}  → ${stepName}`);
+    console.log(`${workerPrefix}  ${symbols.arrow} ${stepName}`);
     try {
         const result = await action();
-        console.log(`${workerPrefix}  ✓ ${stepName}`);
+        console.log(`${workerPrefix}  ${symbols.success} ${stepName}`);
         return result;
     } catch (error) {
-        console.error(`${workerPrefix}  ✗ ${stepName}: ${error.message}`);
+        console.error(`${workerPrefix}  ${symbols.error} ${stepName}: ${error.message}`);
         throw error;
     }
 }
