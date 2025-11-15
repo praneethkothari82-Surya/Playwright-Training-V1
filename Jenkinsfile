@@ -46,6 +46,25 @@ pipeline {
                 }
             }
         }
+
+        stage('Clean Previous Artifacts') {
+            steps {
+                script {
+                    try {
+                        echo 'Cleaning previous test results...'
+                        bat '''
+                            if exist test-results rmdir /s /q test-results
+                            if exist playwright-report rmdir /s /q playwright-report
+                            if exist allure-results rmdir /s /q allure-results
+                            if exist allure-report rmdir /s /q allure-report
+                        '''
+                        echo '✓ Cleanup successful'
+                    } catch (Exception e) {
+                        echo "⚠ Cleanup warning (non-critical): ${e.message}"
+                    }
+                }
+            }
+        }
         
         stage('📥 Checkout Fresh Code') {
             steps {
@@ -73,34 +92,45 @@ pipeline {
             }
         }
         
-        stage('🔧 Setup Environment') {
+        stage('Install Dependencies') {
             steps {
                 script {
-                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                    echo '🔧 SETTING UP ENVIRONMENT'
-                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                }
-                
-                script {
-                    // Install Node.js dependencies
                     try {
-                        echo '📦 Installing Node.js dependencies...'
-                        sh 'npm ci --legacy-peer-deps'
-                        echo '✅ Dependencies installed successfully'
+                        echo 'Installing dependencies...'
+                        echo 'Node version:'
+                        bat 'node --version'
+                        echo 'NPM version:'
+                        bat 'npm --version'
+                        echo 'Running npm ci...'
+                        bat 'npm ci'
+                        echo '✓ Dependencies installed successfully'
                     } catch (Exception e) {
-                        echo '⚠️ npm ci failed, trying npm install...'
-                        sh 'npm install --legacy-peer-deps'
+                        echo "✗ Dependency installation failed: ${e.message}"
+                        echo "Attempting npm install as fallback..."
+                        try {
+                            bat 'npm install'
+                            echo '✓ npm install succeeded as fallback'
+                        } catch (Exception e2) {
+                            echo "✗ Both npm ci and npm install failed"
+                            throw e2
+                        }
                     }
-                    
-                    // Install Playwright browsers
-                    echo '🌐 Installing Playwright browsers...'
-                    sh 'npx playwright install --with-deps chromium firefox webkit'
-                    echo '✅ Browsers installed successfully'
-                    
-                    // Display versions
-                    sh 'node --version'
-                    sh 'npm --version'
-                    sh 'npx playwright --version'
+                }
+            }
+        }
+        
+        stage('Install Playwright Browsers') {
+            steps {
+                script {
+                    try {
+                        echo 'Installing Playwright browsers...'
+                        bat 'npx playwright install --with-deps chromium'
+                        echo '✓ Playwright browsers installed successfully'
+                    } catch (Exception e) {
+                        echo "✗ Browser installation failed: ${e.message}"
+                        echo "Attempting to continue anyway..."
+                        currentBuild.result = 'UNSTABLE'
+                    }
                 }
             }
         }
