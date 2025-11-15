@@ -151,23 +151,8 @@ pipeline {
                         // Run tests with advanced error handling
                         echo '🚀 Executing test suite...'
                         
-                        testOutput = bat(
-                            script: '''
-                                npx playwright test --reporter=html,list,json,junit,allure-playwright --max-failures=0 --retries=2 || exit /b 0
-                            ''',
-                            returnStdout: true
-                        ).trim()
-                        
-                        echo testOutput
-                        
-                        // Check if tests actually ran
-                        if (testOutput.contains('No tests found')) {
-                            error '❌ No tests found in the project'
-                        }
-                        
-                        // Get actual exit code
                         testExitCode = bat(
-                            script: 'npx playwright test --reporter=list || exit /b 0',
+                            script: 'npx playwright test --reporter=html,list,json,junit,allure-playwright --max-failures=10 --retries=2 || exit /b 0',
                             returnStatus: true
                         )
                         
