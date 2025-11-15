@@ -33,12 +33,12 @@ pipeline {
     }
     
     stages {
-        stage('🧹 Clean Workspace') {
+        stage('Clean Workspace') {
             steps {
                 script {
-                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                    echo '🧹 CLEANING WORKSPACE'
-                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo '========================================'
+                    echo 'CLEANING WORKSPACE'
+                    echo '========================================'
                 }
                 
                 // Clean workspace completely
@@ -46,7 +46,7 @@ pipeline {
                 
                 // Ensure clean state
                 script {
-                    echo '✅ Workspace cleaned successfully'
+                    echo '[OK] Workspace cleaned successfully'
                 }
             }
         }
@@ -89,7 +89,7 @@ pipeline {
                             echo "========================================"
                         }
                     } catch (Exception e) {
-                        echo "⚠ System info failed, using default workers: ${e.message}"
+                        echo "[WARNING] System info failed, using default workers: ${e.message}"
                         env.PLAYWRIGHT_WORKERS = '3'
                     }
                 }
@@ -107,20 +107,20 @@ pipeline {
                             if exist allure-results rmdir /s /q allure-results
                             if exist allure-report rmdir /s /q allure-report
                         '''
-                        echo '✓ Cleanup successful'
+                        echo '[OK] Cleanup successful'
                     } catch (Exception e) {
-                        echo "⚠ Cleanup warning (non-critical): ${e.message}"
+                        echo "[WARNING] Cleanup warning (non-critical): ${e.message}"
                     }
                 }
             }
         }
         
-        stage('📥 Checkout Fresh Code') {
+        stage('Checkout Code') {
             steps {
                 script {
-                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo '========================================'
                     echo '📥 CHECKING OUT FRESH CODE'
-                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo '========================================'
                 }
                 
                 // Checkout fresh code from repository
@@ -133,10 +133,10 @@ pipeline {
                     def gitAuthor = bat(returnStdout: true, script: '@git log -1 --pretty=format:"%%an"').trim()
                     def gitMessage = bat(returnStdout: true, script: '@git log -1 --pretty=format:"%%s"').trim()
                     
-                    echo "📌 Branch: ${gitBranch}"
-                    echo "🔖 Commit: ${gitCommit}"
-                    echo "👤 Author: ${gitAuthor}"
-                    echo "💬 Message: ${gitMessage}"
+                    echo "[INFO] Branch: ${gitBranch}"
+                    echo "[INFO] Commit: ${gitCommit}"
+                    echo "[INFO] Author: ${gitAuthor}"
+                    echo "[INFO] Message: ${gitMessage}"
                 }
             }
         }
@@ -152,15 +152,15 @@ pipeline {
                         bat 'npm --version'
                         echo 'Running npm ci...'
                         bat 'npm ci'
-                        echo '✓ Dependencies installed successfully'
+                        echo '[OK] Dependencies installed successfully'
                     } catch (Exception e) {
-                        echo "✗ Dependency installation failed: ${e.message}"
+                        echo "[FAIL] Dependency installation failed: ${e.message}"
                         echo "Attempting npm install as fallback..."
                         try {
                             bat 'npm install'
-                            echo '✓ npm install succeeded as fallback'
+                            echo '[OK] npm install succeeded as fallback'
                         } catch (Exception e2) {
-                            echo "✗ Both npm ci and npm install failed"
+                            echo "[FAIL] Both npm ci and npm install failed"
                             throw e2
                         }
                     }
@@ -174,9 +174,9 @@ pipeline {
                     try {
                         echo 'Installing Playwright browsers...'
                         bat 'npx playwright install --with-deps chromium'
-                        echo '✓ Playwright browsers installed successfully'
+                        echo '[OK] Playwright browsers installed successfully'
                     } catch (Exception e) {
-                        echo "✗ Browser installation failed: ${e.message}"
+                        echo "[FAIL] Browser installation failed: ${e.message}"
                         echo "Attempting to continue anyway..."
                         currentBuild.result = 'UNSTABLE'
                     }
@@ -184,12 +184,12 @@ pipeline {
             }
         }
         
-        stage('🧪 Run Tests') {
+        stage('Run Tests') {
             steps {
                 script {
-                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo '========================================'
                     echo '🧪 RUNNING PLAYWRIGHT TESTS'
-                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo '========================================'
                 }
                 
                 script {
@@ -198,17 +198,17 @@ pipeline {
                     
                     try {
                         // Run tests with advanced error handling
-                        echo '🚀 Executing test suite...'
+                        echo '[INFO] Executing test suite...'
                         
                         testExitCode = bat(
-                            script: "npx playwright test --reporter=html,list,json,junit,allure-playwright --max-failures=10 --retries=2 --workers=${env.PLAYWRIGHT_WORKERS}|| exit /b 0",
+                            script: "call npx playwright test --reporter=html,list,json,junit,allure-playwright --max-failures=10 --retries=2 --workers=${env.PLAYWRIGHT_WORKERS} || exit /b 0",
                             returnStatus: true
                         )
                         
-                        echo "📊 Test execution completed with exit code: ${testExitCode}"
+                        echo "[INFO] Test execution completed with exit code: ${testExitCode}"
                         
                     } catch (Exception e) {
-                        echo "⚠️ Test execution encountered issues: ${e.message}"
+                        echo "[WARNING] Test execution encountered issues: ${e.message}"
                         testExitCode = 1
                     }
                     
@@ -217,104 +217,126 @@ pipeline {
                     
                     // Always continue to reporting stage even if tests fail
                     if (testExitCode != 0) {
-                        echo '⚠️ Some tests failed, but continuing to generate reports...'
+                        echo '[WARNING] Some tests failed, but continuing to generate reports...'
                         unstable('Tests have failures')
                     } else {
-                        echo '✅ All tests passed successfully!'
+                        echo '[OK] All tests passed successfully!'
                     }
                 }
             }
         }
         
-        stage('📊 Generate Reports') {
+        stage('Generate Reports') {
             steps {
                 script {
-                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                    echo '📊 GENERATING TEST REPORTS'
-                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo '========================================'
+                    echo '[INFO] GENERATING TEST REPORTS'
+                    echo '========================================'
                 }
                 
                 script {
                     try {
                         // Generate Allure Report
-                        echo '📈 Generating Allure report...'
+                        echo '[INFO] Generating Allure report...'
                         bat '''
+                            @echo off
                             if exist allure-results (
-                                npx allure generate allure-results --clean -o allure-report || echo "Allure generation warning"
-                                echo "✅ Allure report generated"
+                                echo [INFO] Found allure-results directory
+                                call npx allure generate "allure-results" --clean -o "allure-report" 2>nul || (
+                                    echo [WARNING] Allure generation failed, trying alternative method
+                                    call npx allure generate allure-results --clean 2>nul || echo [WARNING] Allure not available
+                                )
+                                if exist allure-report (
+                                    echo [OK] Allure report generated successfully
+                                ) else (
+                                    echo [WARNING] Allure report not created
+                                )
                             ) else (
-                                echo "⚠️ No Allure results found"
-                                mkdir allure-report 2>nul
+                                echo [WARNING] No allure-results directory found
+                                if not exist allure-report mkdir allure-report 2>nul
                             )
                         '''
                     } catch (Exception e) {
-                        echo "⚠️ Allure report generation failed: ${e.message}"
+                        echo "[WARNING] Allure report generation failed: ${e.message}"
                     }
                     
                     try {
                         // Verify HTML report
-                        echo '📄 Verifying HTML report...'
+                        echo '[INFO] Verifying HTML report...'
                         bat '''
                             if exist playwright-report (
-                                echo "✅ HTML report available"
+                                echo [OK] HTML report available
                             ) else (
-                                echo "⚠️ HTML report not found"
+                                echo [WARNING] HTML report not found
                             )
                         '''
                     } catch (Exception e) {
-                        echo "⚠️ HTML report verification failed: ${e.message}"
+                        echo "[WARNING] HTML report verification failed: ${e.message}"
                     }
                     
                     try {
-                        // Generate test summary
-                        echo '📋 Generating test summary...'
+                        // Generate test summary - Using simpler approach for CI
+                        echo '[INFO] Generating test summary...'
                         bat '''
                             if exist test-results\\results.json (
-                                echo 📊 Test Results Summary:
-                                node -e "const fs = require('fs'); try { const results = JSON.parse(fs.readFileSync('test-results/results.json', 'utf8')); const stats = results.stats || {}; console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'); console.log('Total Tests:', stats.expected || 0); console.log('✅ Passed:', stats.ok || 0); console.log('❌ Failed:', stats.unexpected || 0); console.log('⏭️  Skipped:', stats.skipped || 0); console.log('⏱️  Duration:', ((stats.duration || 0) / 1000).toFixed(2) + 's'); console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'); } catch (e) { console.log('Unable to parse results'); }" || echo "Summary generation skipped"
+                                echo [INFO] Test Results Summary:
+                                echo ========================================
+                                node -e "const fs=require('fs');try{const r=JSON.parse(fs.readFileSync('test-results/results.json','utf8'));const s=r.stats||{};console.log('Total:',s.expected||0);console.log('Passed:',s.ok||0);console.log('Failed:',s.unexpected||0);console.log('Skipped:',s.skipped||0);console.log('Duration:',((s.duration||0)/1000).toFixed(2)+'s');}catch(e){console.log('Parse error');}" || echo [WARNING] Summary generation skipped
+                                echo ========================================
                             )
                         '''
                     } catch (Exception e) {
-                        echo "⚠️ Summary generation failed: ${e.message}"
+                        echo "[WARNING] Summary generation failed: ${e.message}"
                     }
                 }
             }
         }
         
-        stage('📦 Archive Artifacts') {
+        stage('Archive Artifacts') {
             steps {
                 script {
-                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                    echo '📦 ARCHIVING ARTIFACTS'
-                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo '========================================'
+                    echo '[INFO] ARCHIVING ARTIFACTS'
+                    echo '========================================'
                 }
                 
                 script {
                     try {
-                        // Archive test reports
-                        archiveArtifacts artifacts: 'playwright-report/**/*', allowEmptyArchive: true
-                        archiveArtifacts artifacts: 'allure-report/**/*', allowEmptyArchive: true
-                        archiveArtifacts artifacts: 'test-results/**/*', allowEmptyArchive: true
-                        archiveArtifacts artifacts: 'allure-results/**/*', allowEmptyArchive: true
+                        // Archive test reports - check existence first
+                        if (fileExists('playwright-report')) {
+                            archiveArtifacts artifacts: 'playwright-report/**/*', allowEmptyArchive: true
+                            echo '[OK] Playwright report archived'
+                        }
                         
-                        // Archive screenshots and videos
-                        archiveArtifacts artifacts: 'test-results/**/*.png', allowEmptyArchive: true
-                        archiveArtifacts artifacts: 'test-results/**/*.webm', allowEmptyArchive: true
+                        if (fileExists('allure-report')) {
+                            archiveArtifacts artifacts: 'allure-report/**/*', allowEmptyArchive: true
+                            echo '[OK] Allure report archived'
+                        }
                         
-                        echo '✅ Artifacts archived successfully'
+                        if (fileExists('test-results')) {
+                            archiveArtifacts artifacts: 'test-results/**/*', allowEmptyArchive: true
+                            echo '[OK] Test results archived'
+                        }
+                        
+                        if (fileExists('allure-results')) {
+                            archiveArtifacts artifacts: 'allure-results/**/*', allowEmptyArchive: true
+                            echo '[OK] Allure results archived'
+                        }
+                        
+                        echo '[OK] Artifact archiving completed'
                     } catch (Exception e) {
-                        echo "⚠️ Artifact archiving warning: ${e.message}"
+                        echo "[WARNING] Artifact archiving warning: ${e.message}"
                     }
                 }
             }
         }
         
-        stage('📈 Publish Reports') {
+        stage('Publish Reports') {
             steps {
                 script {
-                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                    echo '📈 PUBLISHING REPORTS'
-                    echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                    echo '========================================'
+                    echo '[INFO] PUBLISHING REPORTS'
+                    echo '========================================'
                 }
                 
                 script {
@@ -329,9 +351,9 @@ pipeline {
                             reportName: 'Playwright HTML Report',
                             reportTitles: 'Playwright Test Report'
                         ])
-                        echo '✅ HTML Report published'
+                        echo '[OK] HTML Report published'
                     } catch (Exception e) {
-                        echo "⚠️ HTML Report publishing warning: ${e.message}"
+                        echo "[WARNING] HTML Report publishing warning: ${e.message}"
                     }
                     
                     try {
@@ -343,17 +365,17 @@ pipeline {
                             reportBuildPolicy: 'ALWAYS',
                             results: [[path: 'allure-results']]
                         ])
-                        echo '✅ Allure Report published'
+                        echo '[OK] Allure Report published'
                     } catch (Exception e) {
-                        echo "⚠️ Allure Report publishing warning: ${e.message}"
+                        echo "[WARNING] Allure Report publishing warning: ${e.message}"
                     }
                     
                     try {
                         // Publish JUnit Report
                         junit testResults: 'test-results/*.xml', allowEmptyResults: true
-                        echo '✅ JUnit Report published'
+                        echo '[OK] JUnit Report published'
                     } catch (Exception e) {
-                        echo "⚠️ JUnit Report publishing warning: ${e.message}"
+                        echo "[WARNING] JUnit Report publishing warning: ${e.message}"
                     }
                 }
             }
@@ -363,41 +385,41 @@ pipeline {
     post {
         always {
             script {
-                echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                echo '📋 POST-BUILD ACTIONS'
-                echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                echo '========================================'
+                echo '[INFO] POST-BUILD ACTIONS'
+                echo '========================================'
             }
             
             script {
                 try {
                     // Clean up large files but keep reports
                     bat '''
-                        echo 🧹 Cleaning up temporary files...
+                        echo  Cleaning up temporary files...
                         for /r %%i in (*.log) do if %%~zi gtr 10485760 del "%%i"
-                        echo ✅ Cleanup completed
+                        echo [OK] Cleanup completed
                     '''
                 } catch (Exception e) {
-                    echo "⚠️ Cleanup warning: ${e.message}"
+                    echo "[WARNING] Cleanup warning: ${e.message}"
                 }
                 
                 // Display final build status
                 def duration = currentBuild.duration / 1000
-                echo "⏱️  Build Duration: ${duration}s"
-                echo "📊 Build Result: ${currentBuild.result ?: 'SUCCESS'}"
+                echo "[TIME]  Build Duration: ${duration}s"
+                echo "[INFO] Build Result: ${currentBuild.result ?: 'SUCCESS'}"
             }
         }
         
         success {
             script {
-                echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                echo '✅ BUILD SUCCESSFUL'
-                echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                echo '========================================'
+                echo '[OK] BUILD SUCCESSFUL'
+                echo '========================================'
                 
                 // Send success notification
                 emailext(
-                    subject: "✅ Jenkins Build SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                    subject: "[OK] Jenkins Build SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                     body: """
-                        <h2>Build Successful! ✅</h2>
+                        <h2>Build Successful! [OK]</h2>
                         <p><strong>Job:</strong> ${env.JOB_NAME}</p>
                         <p><strong>Build Number:</strong> ${env.BUILD_NUMBER}</p>
                         <p><strong>Status:</strong> SUCCESS</p>
@@ -415,15 +437,15 @@ pipeline {
         
         failure {
             script {
-                echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                echo '❌ BUILD FAILED'
-                echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                echo '========================================'
+                echo '[FAIL] BUILD FAILED'
+                echo '========================================'
                 
                 // Send failure notification
                 emailext(
-                    subject: "❌ Jenkins Build FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                    subject: "[FAIL] Jenkins Build FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                     body: """
-                        <h2>Build Failed ❌</h2>
+                        <h2>Build Failed [FAIL]</h2>
                         <p><strong>Job:</strong> ${env.JOB_NAME}</p>
                         <p><strong>Build Number:</strong> ${env.BUILD_NUMBER}</p>
                         <p><strong>Status:</strong> FAILURE</p>
@@ -442,15 +464,15 @@ pipeline {
         
         unstable {
             script {
-                echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-                echo '⚠️  BUILD UNSTABLE (Tests Failed)'
-                echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+                echo '========================================'
+                echo '[WARNING]  BUILD UNSTABLE (Tests Failed)'
+                echo '========================================'
                 
                 // Send unstable notification
                 emailext(
-                    subject: "⚠️ Jenkins Build UNSTABLE: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                    subject: "[WARNING] Jenkins Build UNSTABLE: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                     body: """
-                        <h2>Build Unstable - Test Failures ⚠️</h2>
+                        <h2>Build Unstable - Test Failures [WARNING]</h2>
                         <p><strong>Job:</strong> ${env.JOB_NAME}</p>
                         <p><strong>Build Number:</strong> ${env.BUILD_NUMBER}</p>
                         <p><strong>Status:</strong> UNSTABLE</p>
@@ -470,7 +492,7 @@ pipeline {
         
         cleanup {
             script {
-                echo '🧹 Final cleanup...'
+                echo ' Final cleanup...'
                 // Additional cleanup if needed
             }
         }
