@@ -79,10 +79,10 @@ pipeline {
                 
                 // Display commit information
                 script {
-                    def gitCommit = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
-                    def gitBranch = sh(returnStdout: true, script: 'git rev-parse --abbrev-ref HEAD').trim()
-                    def gitAuthor = sh(returnStdout: true, script: 'git log -1 --pretty=format:"%an"').trim()
-                    def gitMessage = sh(returnStdout: true, script: 'git log -1 --pretty=format:"%s"').trim()
+                    def gitCommit = bat(returnStdout: true, script: '@git rev-parse HEAD').trim()
+                    def gitBranch = bat(returnStdout: true, script: '@git rev-parse --abbrev-ref HEAD').trim()
+                    def gitAuthor = bat(returnStdout: true, script: '@git log -1 --pretty=format:"%%an"').trim()
+                    def gitMessage = bat(returnStdout: true, script: '@git log -1 --pretty=format:"%%s"').trim()
                     
                     echo "📌 Branch: ${gitBranch}"
                     echo "🔖 Commit: ${gitCommit}"
@@ -151,13 +151,9 @@ pipeline {
                         // Run tests with advanced error handling
                         echo '🚀 Executing test suite...'
                         
-                        testOutput = sh(
+                        testOutput = bat(
                             script: '''
-                                npx playwright test \
-                                    --reporter=html,list,json,junit,allure-playwright \
-                                    --max-failures=10 \
-                                    --retries=2 \
-                                    || true
+                                npx playwright test --reporter=html,list,json,junit,allure-playwright --max-failures=10 --retries=2 || exit /b 0
                             ''',
                             returnStdout: true
                         ).trim()
@@ -170,8 +166,8 @@ pipeline {
                         }
                         
                         // Get actual exit code
-                        testExitCode = sh(
-                            script: 'npx playwright test --reporter=list || echo $?',
+                        testExitCode = bat(
+                            script: 'npx playwright test --reporter=list || exit /b 0',
                             returnStatus: true
                         )
                         
@@ -208,14 +204,14 @@ pipeline {
                     try {
                         // Generate Allure Report
                         echo '📈 Generating Allure report...'
-                        sh '''
-                            if [ -d "allure-results" ] && [ "$(ls -A allure-results)" ]; then
+                        bat '''
+                            if exist allure-results (
                                 npx allure generate allure-results --clean -o allure-report || echo "Allure generation warning"
                                 echo "✅ Allure report generated"
-                            else
+                            ) else (
                                 echo "⚠️ No Allure results found"
-                                mkdir -p allure-report
-                            fi
+                                mkdir allure-report 2>nul
+                            )
                         '''
                     } catch (Exception e) {
                         echo "⚠️ Allure report generation failed: ${e.message}"
@@ -224,12 +220,12 @@ pipeline {
                     try {
                         // Verify HTML report
                         echo '📄 Verifying HTML report...'
-                        sh '''
-                            if [ -d "playwright-report" ]; then
+                        bat '''
+                            if exist playwright-report (
                                 echo "✅ HTML report available"
-                            else
+                            ) else (
                                 echo "⚠️ HTML report not found"
-                            fi
+                            )
                         '''
                     } catch (Exception e) {
                         echo "⚠️ HTML report verification failed: ${e.message}"
@@ -238,26 +234,11 @@ pipeline {
                     try {
                         // Generate test summary
                         echo '📋 Generating test summary...'
-                        sh '''
-                            if [ -f "test-results/results.json" ]; then
-                                echo "📊 Test Results Summary:"
-                                node -e "
-                                    const fs = require('fs');
-                                    try {
-                                        const results = JSON.parse(fs.readFileSync('test-results/results.json', 'utf8'));
-                                        const stats = results.stats || {};
-                                        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                                        console.log('Total Tests:', stats.expected || 0);
-                                        console.log('✅ Passed:', stats.ok || 0);
-                                        console.log('❌ Failed:', stats.unexpected || 0);
-                                        console.log('⏭️  Skipped:', stats.skipped || 0);
-                                        console.log('⏱️  Duration:', ((stats.duration || 0) / 1000).toFixed(2) + 's');
-                                        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                                    } catch (e) {
-                                        console.log('Unable to parse results');
-                                    }
-                                " || echo "Summary generation skipped"
-                            fi
+                        bat '''
+                            if exist test-results\\results.json (
+                                echo 📊 Test Results Summary:
+                                node -e "const fs = require('fs'); try { const results = JSON.parse(fs.readFileSync('test-results/results.json', 'utf8')); const stats = results.stats || {}; console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'); console.log('Total Tests:', stats.expected || 0); console.log('✅ Passed:', stats.ok || 0); console.log('❌ Failed:', stats.unexpected || 0); console.log('⏭️  Skipped:', stats.skipped || 0); console.log('⏱️  Duration:', ((stats.duration || 0) / 1000).toFixed(2) + 's'); console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'); } catch (e) { console.log('Unable to parse results'); }" || echo "Summary generation skipped"
+                            )
                         '''
                     } catch (Exception e) {
                         echo "⚠️ Summary generation failed: ${e.message}"
@@ -356,10 +337,10 @@ pipeline {
             script {
                 try {
                     // Clean up large files but keep reports
-                    sh '''
-                        echo "🧹 Cleaning up temporary files..."
-                        find . -name "*.log" -type f -size +10M -delete || true
-                        echo "✅ Cleanup completed"
+                    bat '''
+                        echo 🧹 Cleaning up temporary files...
+                        for /r %%i in (*.log) do if %%~zi gtr 10485760 del "%%i"
+                        echo ✅ Cleanup completed
                     '''
                 } catch (Exception e) {
                     echo "⚠️ Cleanup warning: ${e.message}"
