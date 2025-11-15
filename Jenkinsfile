@@ -153,7 +153,7 @@ pipeline {
                         
                         testOutput = bat(
                             script: '''
-                                npx playwright test --reporter=html,list,json,junit,allure-playwright --max-failures=10 --retries=2 || exit /b 0
+                                npx playwright test --reporter=html,list,json,junit,allure-playwright --max-failures=0 --retries=2 || exit /b 0
                             ''',
                             returnStdout: true
                         ).trim()
