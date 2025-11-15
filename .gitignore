@@ -1,50 +1,66 @@
-# Learn more about Jenkins and JENKINS_HOME directory for which this file is
-# intended.
-#
-#  http://jenkins-ci.org/
-#  https://wiki.jenkins-ci.org/display/JENKINS/Administering+Jenkins
-#
-# Note: secret.key is purposefully not tracked by git. This should be backed up
-# separately because configs may contain secrets which were encrypted using the
-# secret.key.  To back up secrets use 'tar -czf /tmp/secrets.tgz secret*' and
-# save the file separate from your repository.  If you want secrets backed up
-# with configuration, then see the bottom of this file for an example.
+# Node.js dependencies
+node_modules/
+package-lock.json
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
 
-# Ignore all JENKINS_HOME except jobs directory, root xml config, and
-# .gitignore file.
-/*
-!/jobs
-!/.gitignore
-!/*.xml
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
 
-# Ignore all files in jobs subdirectories except for folders.
-# Note: git doesn't track folders, only file content.
-jobs/**
-!jobs/**/
+# Allure
+allure-results/
+allure-report/
+.allure/
 
-# Uncomment the following line to save next build numbers with config.
+# Environment files
+.env
+.env.local
+.env.*.local
 
-#!jobs/**/nextBuildNumber
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
 
-# For performance reasons, we want to ignore builds in Jenkins jobs because it
-# contains many tiny files on large installations.  This can impact git
-# performance when running even basic commands like 'git status'.
-builds
-indexing
+# OS
+Thumbs.db
+Desktop.ini
 
-# Exclude only config.xml files in repository subdirectories.
-!config.xml
+# Logs
+logs/
+*.log
 
-# Don't track workspaces (when users build on the master).
-jobs/**/*workspace
+# Test outputs
+screenshots/
+videos/
+traces/
+downloads/
 
-# Security warning: If secrets are included with your configuration, then an
-# adversary will be able to decrypt all encrypted secrets within Jenkins
-# config.  Including secrets is a bad practice, but the example is included in
-# case someone still wants it for convenience.  Uncomment the following line to
-# include secrets for decryption with repository configuration in Git.
+# Build outputs
+dist/
+build/
+out/
 
-#!/secret*
+# Temporary files
+tmp/
+temp/
+*.tmp
 
-# As a result, only Jenkins settings and job config.xml files in JENKINS_HOME
-# will be tracked by git.
+# Coverage
+coverage/
+.nyc_output/
+
+# TypeScript
+*.tsbuildinfo
+
+# Local configuration
+*.local
