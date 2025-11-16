@@ -188,7 +188,7 @@ pipeline {
             steps {
                 script {
                     echo '========================================'
-                    echo '🧪 RUNNING PLAYWRIGHT TESTS'
+                    echo '[INFO] RUNNING PLAYWRIGHT TESTS'
                     echo '========================================'
                 }
                 
@@ -357,15 +357,37 @@ pipeline {
                     }
                     
                     try {
-                        // Publish Allure Report
-                        allure([
-                            includeProperties: false,
-                            jdk: '',
-                            properties: [],
-                            reportBuildPolicy: 'ALWAYS',
-                            results: [[path: 'allure-results']]
-                        ])
-                        echo '[OK] Allure Report published'
+                        // Publish Allure Report - Check if plugin is available
+                        echo '[INFO] Attempting to publish Allure report...'
+                        
+                        // Try to use allure plugin if available
+                        try {
+                            allure([
+                                includeProperties: false,
+                                jdk: '',
+                                properties: [],
+                                reportBuildPolicy: 'ALWAYS',
+                                results: [[path: 'allure-results']]
+                            ])
+                            echo '[OK] Allure Report published'
+                        } catch (MissingMethodException mme) {
+                            echo '[WARNING] Allure plugin not installed in Jenkins'
+                            echo '[INFO] You can install it from: Manage Jenkins > Plugins > Available > Allure'
+                            
+                            // Publish as HTML instead
+                            if (fileExists('allure-report')) {
+                                publishHTML([
+                                    allowMissing: true,
+                                    alwaysLinkToLastBuild: true,
+                                    keepAll: true,
+                                    reportDir: 'allure-report',
+                                    reportFiles: 'index.html',
+                                    reportName: 'Allure Report (HTML)',
+                                    reportTitles: 'Allure Test Report'
+                                ])
+                                echo '[OK] Allure Report published as HTML (fallback)'
+                            }
+                        }
                     } catch (Exception e) {
                         echo "[WARNING] Allure Report publishing warning: ${e.message}"
                     }
